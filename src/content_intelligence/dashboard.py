@@ -26,7 +26,7 @@ import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from . import scheduler
 from .config import Settings
@@ -116,6 +116,57 @@ def build_state(kb: KnowledgeBase, settings: Settings) -> dict[str, Any]:
             "metrics": "as metricas entram por 'ci-system ingest --file ...'",
         },
     }
+
+
+def _quando(video: dict) -> str:
+    """Chave de ordenacao: a hora em que o video vai ao ar (ou foi)."""
+    return video.get("published_at") or video.get("scheduled_for") or ""
+
+
+def build_sequence(
+    kb: KnowledgeBase, channel: str | None = None, limit: int = 50
+) -> list[dict[str, Any]]:
+    """Os videos na ordem em que vao ao ar, com o roteiro junto.
+
+    O quadro responde "em que pe esta cada video"; esta lista responde "como
+    esta ficando o conteudo" -- da para ler a sequencia inteira de cima a
+    baixo, sem abrir um por um. Video sem horario vai para o fim: ainda nao
+    tem lugar na fila.
+    """
+    videos = [
+        v
+        for v in kb.videos(channel=channel, limit=300)
+        if v.get("status") != "REJEITADO"
+    ]
+    videos.sort(key=lambda v: (_quando(v) == "", _quando(v)))
+
+    out: list[dict[str, Any]] = []
+    for video in videos[:limit]:
+        script = kb.script(video["script_id"]) if video.get("script_id") else None
+        shots = kb.shot_list_for(video["script_id"]) if video.get("script_id") else None
+        publishing = video.get("publishing") or {}
+        out.append(
+            {
+                "id": video.get("id"),
+                "title": video.get("title"),
+                "channel": video.get("channel"),
+                "status": video.get("status"),
+                "bucket": video.get("bucket"),
+                "format": video.get("format"),
+                "hook_type": video.get("hook_type"),
+                "duration_s": video.get("duration_s"),
+                "when": _quando(video) or None,
+                "published": bool(video.get("published_at")),
+                "hook": (script or {}).get("selected_hook", ""),
+                "sections": (script or {}).get("sections", []),
+                "tone": (script or {}).get("tone", ""),
+                "sources": (script or {}).get("sources", []),
+                "caption": publishing.get("caption", ""),
+                "hashtags": publishing.get("hashtags", []),
+                "shot_count": len((shots or {}).get("shots", [])),
+            }
+        )
+    return out
 
 
 def video_detail(kb: KnowledgeBase, video_id: str) -> dict[str, Any]:
@@ -215,6 +266,13 @@ def make_handler(settings: Settings) -> type[BaseHTTPRequestHandler]:
             if path == "/api/state":
                 with KnowledgeBase(settings.db_path) as kb:
                     self._json(build_state(kb, settings))
+                return
+
+            if path == "/api/sequence":
+                query = parse_qs(urlparse(self.path).query)
+                canal = (query.get("channel") or [None])[0]
+                with KnowledgeBase(settings.db_path) as kb:
+                    self._json(build_sequence(kb, canal))
                 return
 
             if path.startswith("/api/video/"):

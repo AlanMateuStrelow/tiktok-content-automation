@@ -112,6 +112,40 @@
   .v-MANTER { color: var(--muted); }
   .v-DADOS_INSUFICIENTES { color: var(--muted); }
 
+  /* sequencia: os videos na ordem em que vao ao ar */
+  .switch { display: inline-flex; gap: 2px; background: var(--panel-2);
+            border: 1px solid var(--line); border-radius: 8px; padding: 2px; margin-left: 10px; }
+  .switch button { border: 0; background: none; border-radius: 6px; padding: 3px 12px;
+                   color: var(--muted); font-size: 12px; }
+  .switch button.on { background: var(--panel); color: var(--text); font-weight: 600;
+                      box-shadow: var(--shadow); }
+  .seqday { font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+            color: var(--muted); margin: 22px 0 10px; padding-bottom: 6px;
+            border-bottom: 1px solid var(--line); }
+  .seq { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+         padding: 16px 18px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .seqhead { display: grid; grid-template-columns: 38px 1fr; gap: 12px; align-items: start; }
+  .seqnum { width: 30px; height: 30px; border-radius: 50%; background: var(--panel-2);
+            border: 1px solid var(--line); display: grid; place-items: center;
+            font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); }
+  .seq h3 { margin: 3px 0 7px; font-size: 16px; letter-spacing: -.01em; }
+  .seqwhen { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--muted); }
+  .hookbox { margin: 14px 0; padding: 12px 14px; border-radius: 8px;
+             background: var(--panel-2); border-left: 3px solid var(--accent); }
+  .hookbox .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em;
+                  color: var(--muted); display: block; margin-bottom: 4px; }
+  .hookbox .txt { font-size: 15px; font-weight: 600; }
+  .secrow { display: grid; grid-template-columns: 72px 1fr; gap: 12px; padding: 8px 0;
+            border-top: 1px solid var(--line); }
+  .secrow .t { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--muted); }
+  .secrow .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+                 color: var(--muted); }
+  .secrow .os { font-size: 12px; color: var(--muted); }
+  .capline { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+             font-size: 13px; }
+  .capline .tagsline { color: var(--accent); font-size: 12px; }
+  .seqfoot { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
   /* gaveta de detalhe */
   #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 30; }
   #scrim.on { display: block; }
@@ -157,8 +191,14 @@
   </section>
 
   <section>
-    <h2>Fila de produção</h2>
+    <h2 style="display:flex;align-items:center">Fila de produção
+      <span class="switch">
+        <button id="v-quadro" class="on" onclick="setView('quadro')">Quadro</button>
+        <button id="v-seq" onclick="setView('sequencia')">Sequência</button>
+      </span>
+    </h2>
     <div class="board" id="board"></div>
+    <div id="sequence" style="display:none"></div>
   </section>
 
   <section>
@@ -196,6 +236,7 @@
 
 <script>
 let STATE = null, DETAIL = null, TAB = 'roteiro', TIMER = null;
+let VIEW = 'quadro', SEQ = null;
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -233,6 +274,7 @@ async function load() {
   document.getElementById('stamp').textContent = 'lido ' + fmt(STATE.generated_at);
   renderBanner(); renderChannels(); renderBoard();
   renderOpps(); renderLearning(); renderRuns();
+  if (VIEW === 'sequencia') await loadSequence();
   if (DETAIL) openDetail(DETAIL.video.id);
 }
 
@@ -328,6 +370,87 @@ function renderRuns() {
     </tr>`).join('') || '<tr><td colspan="3" class="empty">nenhum ciclo rodado</td></tr>';
   document.getElementById('runs').innerHTML =
     `<thead><tr><th>quando</th><th>resultado</th><th>trilha</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+function setView(v) {
+  VIEW = v;
+  document.getElementById('v-quadro').classList.toggle('on', v === 'quadro');
+  document.getElementById('v-seq').classList.toggle('on', v === 'sequencia');
+  document.getElementById('board').style.display = v === 'quadro' ? '' : 'none';
+  document.getElementById('sequence').style.display = v === 'quadro' ? 'none' : '';
+  if (v === 'sequencia') loadSequence();
+}
+
+async function loadSequence() {
+  SEQ = await (await fetch('/api/sequence')).json();
+  renderSequence();
+}
+
+function diaDe(iso) {
+  if (!iso) return 'Sem horário definido';
+  try {
+    const d = new Date(iso).toLocaleDateString('pt-BR', {
+      weekday: 'long', day: '2-digit', month: 'long', timeZone: STATE.timezone });
+    return d.charAt(0).toUpperCase() + d.slice(1);
+  } catch { return iso; }
+}
+
+function horaDe(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleTimeString('pt-BR', {
+      hour: '2-digit', minute: '2-digit', timeZone: STATE.timezone }) + ' ' + tzLabel();
+  } catch { return iso; }
+}
+
+function renderSequence() {
+  const alvo = document.getElementById('sequence');
+  if (!SEQ.length) {
+    alvo.innerHTML = '<div class="empty">nenhum vídeo ainda — rode <code>ci-system cycle --channel finance</code></div>';
+    return;
+  }
+
+  let html = '', diaAtual = null;
+  SEQ.forEach((v, i) => {
+    const dia = diaDe(v.when);
+    if (dia !== diaAtual) { html += `<div class="seqday">${esc(dia)}</div>`; diaAtual = dia; }
+
+    const secoes = (v.sections || []).map(x => `
+      <div class="secrow">
+        <span class="t">${x.start_s}s–${x.end_s}s</span>
+        <div>
+          <div class="lbl">${esc(x.label || '')}</div>
+          <div>${esc(x.text || '')}</div>
+          ${x.on_screen ? `<div class="os">na tela: ${esc(x.on_screen)}</div>` : ''}
+        </div>
+      </div>`).join('') || '<div class="empty">sem roteiro gravado</div>';
+
+    html += `<article class="seq">
+      <div class="seqhead">
+        <span class="seqnum">${i + 1}</span>
+        <div>
+          <div class="seqwhen">${esc(horaDe(v.when))} · ${esc(v.channel)} · ${esc(v.status)}</div>
+          <h3>${esc(v.title)}</h3>
+          <div class="tags">
+            <span class="tag ${esc(v.bucket)}">${esc(v.bucket)}</span>
+            <span class="tag">${esc(v.format || '—')}</span>
+            <span class="tag">hook: ${esc(v.hook_type || '—')}</span>
+            <span class="tag">${esc(v.duration_s)}s</span>
+          </div>
+        </div>
+      </div>
+      ${v.hook ? `<div class="hookbox"><span class="lbl">Primeiros segundos</span>
+        <span class="txt">${esc(v.hook)}</span></div>` : ''}
+      ${secoes}
+      ${v.caption ? `<div class="capline">${esc(v.caption)}
+        <div class="tagsline">${esc((v.hashtags || []).join(' '))}</div></div>` : ''}
+      <div class="seqfoot">
+        <button onclick="openDetail('${esc(v.id)}')">Shot list (${v.shot_count} planos) e ações</button>
+        <span class="muted" style="font-size:12px">${v.published ? 'já publicado' : 'ainda não postado'}</span>
+      </div>
+    </article>`;
+  });
+  alvo.innerHTML = html;
 }
 
 async function openDetail(id) {
@@ -459,6 +582,7 @@ async function act(action) {
   if (!r.ok) { alert(body.error || 'falhou'); return; }
   DETAIL = body;
   await load();
+  if (VIEW === 'sequencia') await loadSequence();
   renderDetail();
 }
 

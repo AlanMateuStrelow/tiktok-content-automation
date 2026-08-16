@@ -91,6 +91,40 @@ class TestDetalhe:
             dashboard.video_detail(kb, "vid_naoexiste")
 
 
+class TestSequencia:
+    def test_ordena_pela_hora_de_ir_ao_ar(self, kb, settings):
+        orch = Orchestrator(DryRunLLM(overrides=fixtures.happy_path()), kb, settings)
+        for opp in orch.hunt_trends("finance")[:1] * 3:
+            orch.produce(opp)
+        seq = dashboard.build_sequence(kb)
+        horarios = [v["when"] for v in seq]
+        assert horarios == sorted(horarios)
+
+    def test_traz_o_roteiro_junto(self, kb, produced):
+        # O ponto da sequencia e ler o conteudo sem abrir video por video.
+        item = dashboard.build_sequence(kb)[0]
+        assert item["hook"]
+        assert item["sections"]
+        assert item["caption"]
+        assert item["shot_count"] > 0
+
+    def test_sem_horario_vai_para_o_fim(self, kb, settings, produced):
+        orch = Orchestrator(DryRunLLM(overrides=fixtures.happy_path()), kb, settings)
+        segundo = orch.produce(orch.hunt_trends("finance")[0])
+        dashboard.apply_action(kb, settings, segundo.video_id, "reabrir")
+        seq = dashboard.build_sequence(kb)
+        assert seq[-1]["id"] == segundo.video_id
+        assert seq[-1]["when"] is None
+
+    def test_rejeitado_fica_de_fora(self, kb, settings, produced):
+        dashboard.apply_action(kb, settings, produced.video_id, "rejeitar")
+        assert dashboard.build_sequence(kb) == []
+
+    def test_filtra_por_canal(self, kb, settings, produced):
+        assert len(dashboard.build_sequence(kb, channel="finance")) == 1
+        assert dashboard.build_sequence(kb, channel="tech_ai") == []
+
+
 class TestAcoes:
     def test_publicar_grava_a_hora(self, kb, settings, produced):
         out = dashboard.apply_action(kb, settings, produced.video_id, "publicar")
@@ -160,6 +194,11 @@ class TestHTTP:
             body = json.loads(r.read())
         assert body["video"]["status"] == "PUBLICADO"
         assert self._get(server + "/api/state")["counts"]["PUBLICADO"] == 1
+
+    def test_api_de_sequencia(self, server, produced):
+        seq = self._get(server + "/api/sequence")
+        assert [v["id"] for v in seq] == [produced.video_id]
+        assert seq[0]["sections"]
 
     def test_rota_desconhecida_responde_404(self, server):
         with pytest.raises(urllib.error.HTTPError) as exc:

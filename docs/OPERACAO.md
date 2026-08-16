@@ -17,8 +17,11 @@ O que fazer nele, na ordem do dia:
 
 1. **Topo** — se a faixa estiver vermelha, o buffer de algum canal furou o
    mínimo. Isso vem antes de qualquer outra tarefa: rode `cycle` nesse canal.
-2. **Fila de produção** — a coluna `AGENDADO` é a sua lista de trabalho. Cada
-   card é um vídeo que precisa ser montado e postado à mão.
+2. **Fila de produção** — duas visões. **Quadro** mostra em que pé está cada
+   vídeo; a coluna `AGENDADO` é a sua lista de trabalho. **Sequência** mostra
+   os vídeos na ordem em que vão ao ar, com hook e roteiro abertos na tela —
+   é onde se lê a semana inteira de uma vez e se percebe repetição de ângulo
+   ou de hook antes de gravar.
 3. **Clique no card** — abre roteiro, shot list plano a plano (com as queries
    de b-roll), a caption pronta para copiar e as métricas do vídeo.
 4. **Depois de postar no TikTok** — volte no card e clique em *Marcar como

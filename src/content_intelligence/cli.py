@@ -28,24 +28,48 @@ from .orchestrator import Orchestrator
 from .scheduler import next_slot
 
 
+def _add_global_flags(parser: argparse.ArgumentParser, *, suppress: bool) -> None:
+    """Flags globais, aceitas antes E depois do subcomando.
+
+    argparse so reconhece opcao do parser principal antes do subcomando, entao
+    `report daily --out x.md` -- a forma que a documentacao sempre mostrou --
+    morria com "unrecognized arguments". Repetir as flags em cada subparser
+    resolve; `SUPPRESS` impede que a copia do subcomando sobrescreva com o
+    default um valor que veio antes.
+    """
+    extra: dict[str, Any] = {"default": argparse.SUPPRESS} if suppress else {}
+    parser.add_argument("--config", help="JSON de settings (opcional)", **extra)
+    parser.add_argument("--db", help="Caminho do banco de conhecimento", **extra)
+    parser.add_argument("--model", help="Sobrescreve o modelo", **extra)
+    parser.add_argument(
+        "--effort", choices=["low", "medium", "high", "xhigh", "max"], **extra
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Nao chama a API: gera stubs validos contra o schema de cada agente",
+        **extra,
+    )
+    parser.add_argument("--out", help="Grava a saida em arquivo alem do stdout", **extra)
+    parser.add_argument("--json", action="store_true", help="Saida crua em JSON", **extra)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="ci-system",
         description="Content Intelligence & Automated Media System",
     )
-    p.add_argument("--config", help="JSON de settings (opcional)")
-    p.add_argument("--db", help="Caminho do banco de conhecimento")
-    p.add_argument("--model", help="Sobrescreve o modelo")
-    p.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"])
-    p.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Nao chama a API: gera stubs validos contra o schema de cada agente",
-    )
-    p.add_argument("--out", help="Grava a saida em arquivo alem do stdout")
-    p.add_argument("--json", action="store_true", help="Saida crua em JSON")
+    _add_global_flags(p, suppress=False)
 
-    sub = p.add_subparsers(dest="command", required=True)
+    herda_globais = argparse.ArgumentParser(add_help=False)
+    _add_global_flags(herda_globais, suppress=True)
+
+    _sub = p.add_subparsers(dest="command", required=True)
+
+    class sub:  # noqa: N801 - so para injetar o parent em todo add_parser
+        @staticmethod
+        def add_parser(name: str, **kwargs: Any) -> argparse.ArgumentParser:
+            return _sub.add_parser(name, parents=[herda_globais], **kwargs)
 
     sub.add_parser("init", help="Cria o banco de conhecimento vazio")
     sub.add_parser("health", help="Buffer, portfolio e proximo slot por canal")

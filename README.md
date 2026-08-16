@@ -59,6 +59,13 @@ python -m content_intelligence dashboard
 python -m content_intelligence --dry-run mission
 ```
 
+### Windows sem terminal
+
+Quem nao quiser digitar comando: a pasta `windows/` tem arquivos `.bat` para
+abrir com duplo clique, na ordem numerada — instalar, testar sem gastar
+credito, rodar a rotina do dia, abrir o painel, comecar do zero. Eles acham o
+Python sozinhos e nao dependem do PATH.
+
 ## Primeiros comandos
 
 ```bash
@@ -97,9 +104,11 @@ ci-system dashboard --port 9000 --no-browser
 ```
 
 Serve um quadro local com o mesmo banco que a CLI escreve: buffer e portfólio
-por canal, a fila de produção em colunas por status, e — ao clicar num vídeo —
-o roteiro, a shot list plano a plano, a caption pronta para copiar e as
-métricas. Dali você **agenda**, **marca como publicado** ou **rejeita** um
+por canal e a fila de produção em duas visões — **Quadro** (colunas por
+status: em que pé está cada vídeo) e **Sequência** (os vídeos na ordem em que
+vão ao ar, com hook e roteiro inteiro na tela, para ler a semana de cima a
+baixo). Clicando num vídeo, a shot list plano a plano, a caption pronta para
+copiar e as métricas. Dali você **agenda**, **marca como publicado** ou **rejeita** um
 vídeo; é assim que o sistema fica sabendo o que foi ao ar, já que ninguém
 posta por você.
 
@@ -147,7 +156,7 @@ src/content_intelligence/
 ├── cli.py             interface de linha de comando
 ├── __main__.py        permite `python -m content_intelligence`
 ├── dashboard.py       painel web de gestao a vista (stdlib, sem deps)
-├── web/index.html     a interface do painel
+├── web/index.html     a interface do painel (quadro + sequencia)
 ├── demo_data.py       saídas válidas usadas pelo --dry-run
 ├── agents/            os 8 agentes: prompt + schema + validação
 └── prompts/           prompts de sistema (em inglês — o conteúdo é para EUA/UK)
@@ -159,7 +168,7 @@ src/content_intelligence/
 pytest
 ```
 
-125 testes cobrindo pontuação, sistema de morte, knowledge base, agendamento,
+131 testes cobrindo pontuação, sistema de morte, knowledge base, agendamento,
 validadores de agente, pipeline completo com gates, relatórios, o painel
 (estado, ações e as rotas HTTP) e o carregamento de configuração. Nenhum
 chama a API.
