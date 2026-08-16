@@ -4,6 +4,7 @@
     ci-system mission --dry-run
     ci-system cycle --channel finance
     ci-system report daily
+    ci-system dashboard
 
 Sem ANTHROPIC_API_KEY, use --dry-run: o encanamento inteiro roda com stubs.
 """
@@ -18,7 +19,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from . import reports
+from . import dashboard, reports
 from .config import Settings
 from .knowledge_base import KnowledgeBase
 from .llm import LLMError, build_llm
@@ -84,6 +85,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("schedule", help="Lista o calendario agendado")
 
+    w = sub.add_parser(
+        "dashboard", help="Painel web de gestao a vista (roda local, sem rede)"
+    )
+    w.add_argument("--host", default="127.0.0.1")
+    w.add_argument("--port", type=int, default=8787)
+    w.add_argument(
+        "--no-browser", action="store_true", help="Nao abre o navegador sozinho"
+    )
+
     m = sub.add_parser(
         "mission", help="PRIMEIRA MISSAO (Fase 1): nichos, top 5, hipoteses, calendario"
     )
@@ -147,6 +157,11 @@ def _dispatch(
     if cmd == "init":
         _emit(args, f"knowledge base pronta em {settings.db_path}")
         return 0
+
+    if cmd == "dashboard":
+        # O painel abre a propria conexao a cada requisicao: le sempre o estado
+        # atual do banco, mesmo com a CLI escrevendo em outro terminal.
+        return dashboard.serve(settings, args.host, args.port, not args.no_browser)
 
     if cmd == "health":
         health = orch.health()

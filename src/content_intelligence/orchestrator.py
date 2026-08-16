@@ -387,6 +387,7 @@ class Orchestrator:
             format=opportunity.suggested_format,
             bucket=opportunity.bucket,
             duration_s=int(script_data.get("duration_s", 90)),
+            publishing=copy,
         )
 
         similar, why = scheduler.too_similar(
@@ -567,32 +568,37 @@ class Orchestrator:
     # -- Saude operacional -------------------------------------------------
     def health(self) -> dict[str, Any]:
         """Estado do pipeline: buffer por canal, portfolio, proximo slot."""
-        out: dict[str, Any] = {"checked_at": utcnow(), "channels": {}}
-        for channel in self.settings.channels:
-            status = scheduler.buffer_status(
-                channel, self.kb.buffer_count(channel), self.settings.publishing
-            )
-            entry = status.to_dict()
-            entry["portfolio"] = portfolio_drift(self.kb.bucket_counts(channel))
-            try:
-                taken = [
-                    v["scheduled_for"]
-                    for v in self.kb.scheduled(channel)
-                    if v.get("scheduled_for")
-                ]
-                entry["next_slot"] = scheduler.next_slot(
-                    channel, taken, self.settings.publishing
-                )
-            except (ValueError, RuntimeError) as exc:
-                entry["next_slot"] = None
-                entry["slot_error"] = str(exc)
-            out["channels"][channel] = entry
-        out["priority"] = next(
-            (
-                f"BUFFER CRITICO em '{c}': {d['count']} videos (minimo {d['minimum']})"
-                for c, d in out["channels"].items()
-                if d["critical"]
-            ),
-            "nenhuma prioridade critica",
+        return operational_health(self.kb, self.settings)
+
+
+def operational_health(kb: KnowledgeBase, settings: Settings) -> dict[str, Any]:
+    """Buffer, portfolio e proximo slot por canal.
+
+    Nao usa o modelo -- e so leitura do banco mais aritmetica. Fica solto da
+    classe porque o painel web precisa dela sem instanciar um LLM.
+    """
+    out: dict[str, Any] = {"checked_at": utcnow(), "channels": {}}
+    for channel in settings.channels:
+        status = scheduler.buffer_status(
+            channel, kb.buffer_count(channel), settings.publishing
         )
-        return out
+        entry = status.to_dict()
+        entry["portfolio"] = portfolio_drift(kb.bucket_counts(channel))
+        try:
+            taken = [
+                v["scheduled_for"] for v in kb.scheduled(channel) if v.get("scheduled_for")
+            ]
+            entry["next_slot"] = scheduler.next_slot(channel, taken, settings.publishing)
+        except (ValueError, RuntimeError) as exc:
+            entry["next_slot"] = None
+            entry["slot_error"] = str(exc)
+        out["channels"][channel] = entry
+    out["priority"] = next(
+        (
+            f"BUFFER CRITICO em '{c}': {d['count']} videos (minimo {d['minimum']})"
+            for c, d in out["channels"].items()
+            if d["critical"]
+        ),
+        "nenhuma prioridade critica",
+    )
+    return out

@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão à vista — Content Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Ctext y=%2714%27 font-size=%2714%27%3E%F0%9F%93%8B%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-2: #f0f2f5;
+    --line: #d9dde3;
+    --text: #16191d;
+    --muted: #656d78;
+    --accent: #2f6bd8;
+    --ok: #1f7a4d;
+    --warn: #9a6400;
+    --bad: #b3261e;
+    --shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a20; --panel-2: #1e222a; --line: #2b313b;
+      --text: #e8eaed; --muted: #9aa3ae; --accent: #6da2ff;
+      --ok: #4cc38a; --warn: #e0a33a; --bad: #ff6b60;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
+    position: sticky; top: 0; z-index: 20;
+  }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: -.01em; }
+  .grow { flex: 1; }
+  .muted { color: var(--muted); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  button {
+    font: inherit; cursor: pointer; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--text);
+    border-radius: 7px; padding: 6px 12px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  main { padding: 20px 24px 80px; }
+  section { margin-bottom: 28px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+       color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+
+  .banner {
+    padding: 12px 16px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--panel); margin-bottom: 20px; box-shadow: var(--shadow);
+  }
+  .banner.crit { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 16px; box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .kpi { font-size: 26px; font-weight: 650; letter-spacing: -.02em; }
+  .kpi.crit { color: var(--bad); }
+  .kpi.ok { color: var(--ok); }
+  .bars { margin-top: 12px; display: grid; gap: 7px; }
+  .bar-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 9px; align-items: center; }
+  .track { height: 7px; background: var(--panel-2); border-radius: 4px; position: relative; overflow: hidden; }
+  .fill { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+  .target { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--muted); }
+
+  .board { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); align-items: start; }
+  .col { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .col > header { position: static; background: none; border: 0; padding: 0 4px 10px; display: block; }
+  .col h3 { margin: 0; font-size: 13px; }
+  .col .sub { font-size: 11px; color: var(--muted); }
+  .vcard {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 11px 12px; margin-bottom: 8px; cursor: pointer;
+  }
+  .vcard:hover { border-color: var(--accent); }
+  .vcard .t { font-weight: 600; margin-bottom: 6px; }
+  .tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .tag {
+    font-size: 10.5px; padding: 1px 7px; border-radius: 999px;
+    border: 1px solid var(--line); color: var(--muted); background: var(--panel-2);
+  }
+  .tag.CORE { color: var(--accent); border-color: var(--accent); }
+  .tag.EXPERIMENTAL { color: var(--warn); border-color: var(--warn); }
+  .tag.OPPORTUNITY { color: var(--ok); border-color: var(--ok); }
+  .empty { color: var(--muted); font-size: 12.5px; padding: 10px 4px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line);
+          border-radius: 10px; box-shadow: var(--shadow); }
+
+  .evid { font-size: 10.5px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); }
+  .evid.FATO { color: var(--ok); border-color: var(--ok); }
+  .evid.HIPOTESE { color: var(--warn); border-color: var(--warn); }
+  .evid.DADOS_INSUFICIENTES { color: var(--muted); }
+  .v-MATAR { color: var(--bad); font-weight: 600; }
+  .v-ESCALAR { color: var(--ok); font-weight: 600; }
+  .v-MANTER { color: var(--muted); }
+  .v-DADOS_INSUFICIENTES { color: var(--muted); }
+
+  /* gaveta de detalhe */
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; z-index: 30; }
+  #scrim.on { display: block; }
+  #drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(680px, 100%);
+    background: var(--panel); border-left: 1px solid var(--line); z-index: 40;
+    transform: translateX(100%); transition: transform .18s ease; overflow-y: auto;
+  }
+  #drawer.on { transform: none; }
+  #d-title { font-size: 17px; text-transform: none; letter-spacing: -.01em; color: var(--text); }
+  .dhead { padding: 18px 22px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+  .dbody { padding: 18px 22px 60px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 16px 0; }
+  .tabs button { border: 0; background: none; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px; color: var(--muted); }
+  .tabs button.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+  .shot { display: grid; grid-template-columns: 74px 1fr; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .shot .time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
+  .sec { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  pre.copy {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; white-space: pre-wrap; word-break: break-word; margin: 8px 0;
+  }
+  .note { font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--warn); padding-left: 10px; margin: 10px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Gestão à vista</h1>
+  <span class="muted mono" id="dbpath"></span>
+  <span class="grow"></span>
+  <span class="muted mono" id="stamp"></span>
+  <label class="muted"><input type="checkbox" id="auto"> auto 30s</label>
+  <button class="primary" onclick="load()">Atualizar</button>
+</header>
+
+<main>
+  <div id="banner" class="banner">carregando…</div>
+
+  <section>
+    <h2>Canais</h2>
+    <div class="cards" id="channels"></div>
+  </section>
+
+  <section>
+    <h2>Fila de produção</h2>
+    <div class="board" id="board"></div>
+  </section>
+
+  <section>
+    <h2>Oportunidades (CONTENT SCORE)</h2>
+    <div class="wrap"><table id="opps"></table></div>
+  </section>
+
+  <section>
+    <h2>Sistema de morte &amp; aprendizado</h2>
+    <div class="cards">
+      <div class="card"><h3>Vereditos</h3><div id="kills"></div></div>
+      <div class="card"><h3>Aprendizados</h3><div id="learnings"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Últimas decisões do orquestrador</h2>
+    <div class="wrap"><table id="runs"></table></div>
+  </section>
+</main>
+
+<div id="scrim" onclick="closeDrawer()"></div>
+<aside id="drawer">
+  <div class="dhead">
+    <button onclick="closeDrawer()">← fechar</button>
+    <h2 style="margin-top:12px" id="d-title"></h2>
+    <div class="tags" id="d-tags"></div>
+    <div class="actions" id="d-actions"></div>
+  </div>
+  <div class="dbody">
+    <div class="tabs" id="d-tabs"></div>
+    <div id="d-panel"></div>
+  </div>
+</aside>
+
+<script>
+let STATE = null, DETAIL = null, TAB = 'roteiro', TIMER = null;
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pct = (n) => (n * 100).toFixed(0) + '%';
+
+function fmt(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  } catch { return iso; }
+}
+
+// Slot de publicacao vale no fuso do publico (America/New_York), nao no do
+// navegador: quem opera precisa ver a hora em que o video vai ao ar la.
+function fmtSlot(iso) {
+  if (!iso) return '—';
+  try {
+    const opts = { dateStyle: 'short', timeStyle: 'short', timeZone: STATE.timezone };
+    return new Date(iso).toLocaleString('pt-BR', opts) + ' ' + tzLabel();
+  } catch { return iso; }
+}
+
+function tzLabel() {
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: STATE.timezone, timeZoneName: 'short',
+    }).formatToParts(new Date()).find(p => p.type === 'timeZoneName').value;
+  } catch { return ''; }
+}
+
+async function load() {
+  const r = await fetch('/api/state');
+  STATE = await r.json();
+  document.getElementById('dbpath').textContent = STATE.db_path;
+  document.getElementById('stamp').textContent = 'lido ' + fmt(STATE.generated_at);
+  renderBanner(); renderChannels(); renderBoard();
+  renderOpps(); renderLearning(); renderRuns();
+  if (DETAIL) openDetail(DETAIL.video.id);
+}
+
+function renderBanner() {
+  const el = document.getElementById('banner');
+  const crit = !STATE.priority.startsWith('nenhuma');
+  el.className = 'banner' + (crit ? ' crit' : '');
+  el.innerHTML = esc(STATE.priority) +
+    `<div class="muted" style="font-weight:400;margin-top:6px;font-size:12.5px">
+      ${esc(STATE.not_automated.render)} · ${esc(STATE.not_automated.publish)}
+     </div>`;
+}
+
+function renderChannels() {
+  document.getElementById('channels').innerHTML = STATE.channels.map(c => {
+    const bars = Object.entries(c.portfolio).map(([b, d]) => `
+      <div class="bar-row">
+        <span class="muted">${esc(b)}</span>
+        <span class="track">
+          <span class="fill" style="width:${Math.min(100, d.actual * 100)}%"></span>
+          <span class="target" style="left:${d.target * 100}%"></span>
+        </span>
+        <span class="mono">${pct(d.actual)}<span class="muted"> /${pct(d.target)}</span></span>
+      </div>`).join('');
+    return `<div class="card">
+      <h3>${esc(c.channel)}</h3>
+      <div class="kpi ${c.critical ? 'crit' : 'ok'}">${c.count}<span class="muted"
+        style="font-size:14px;font-weight:400"> / ${c.minimum} mín · ${c.target} alvo</span></div>
+      <div class="muted mono">próximo slot: ${esc(c.next_slot ? fmtSlot(c.next_slot) : (c.slot_error || '—'))}</div>
+      <div class="muted mono">janelas: ${esc((c.windows || []).join(', '))} ${esc(tzLabel())}</div>
+      <div class="bars">${bars}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBoard() {
+  document.getElementById('board').innerHTML = STATE.columns.map(col => {
+    const items = STATE.videos.filter(v => v.status === col.status);
+    const cards = items.map(v => `
+      <div class="vcard" onclick="openDetail('${esc(v.id)}')">
+        <div class="t">${esc(v.title)}</div>
+        <div class="tags">
+          <span class="tag">${esc(v.channel)}</span>
+          <span class="tag ${esc(v.bucket)}">${esc(v.bucket)}</span>
+          <span class="tag">${esc(v.duration_s)}s</span>
+        </div>
+        <div class="muted mono" style="margin-top:6px">
+          ${v.published_at ? 'publicado ' + fmt(v.published_at)
+            : v.scheduled_for ? fmtSlot(v.scheduled_for) : esc(v.format || '—')}
+        </div>
+      </div>`).join('') || '<div class="empty">vazio</div>';
+    return `<div class="col">
+      <header><h3>${esc(col.status)} · ${items.length}</h3>
+      <div class="sub">${esc(col.label)}</div></header>${cards}</div>`;
+  }).join('');
+}
+
+function renderOpps() {
+  const rows = STATE.opportunities.map(o => `<tr>
+      <td class="num mono"><strong>${o.content_score}</strong></td>
+      <td>${esc(o.title)}<div class="muted" style="font-size:12px">${esc(o.angle)}</div></td>
+      <td>${esc(o.channel)}</td>
+      <td>${esc(o.decision)}</td>
+      <td><span class="tag ${esc(o.bucket)}">${esc(o.bucket)}</span></td>
+      <td>${esc(o.trend_stage)}</td>
+      <td><span class="evid ${esc(o.evidence_level)}">${esc(o.evidence_level)}</span></td>
+    </tr>`).join('') || '<tr><td colspan="7" class="empty">nada ainda — rode <code>ci-system trends --channel finance</code></td></tr>';
+  document.getElementById('opps').innerHTML =
+    `<thead><tr><th class="num">score</th><th>ângulo</th><th>canal</th><th>decisão</th>
+     <th>bucket</th><th>estágio</th><th>evidência</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+function renderLearning() {
+  document.getElementById('kills').innerHTML = STATE.kills.map(k => `
+    <div class="sec"><span class="v-${esc(k.verdict)}">${esc(k.verdict)}</span>
+      — ${esc(k.dimension)}: <strong>${esc(k.value)}</strong>
+      <div class="muted" style="font-size:12px">${esc(k.rationale)}
+        (n=${k.samples}, obs ${k.observed} vs base ${k.baseline})</div></div>`).join('')
+    || '<div class="empty">sem vereditos — precisa de métricas importadas</div>';
+
+  document.getElementById('learnings').innerHTML = STATE.learnings.map(l => `
+    <div class="sec"><span class="evid ${esc(l.evidence_level)}">${esc(l.evidence_level)}</span>
+      <strong> ${esc(l.topic)}</strong>
+      <div class="muted" style="font-size:12px">${esc(l.statement)}</div></div>`).join('')
+    || '<div class="empty">sem aprendizados — rode <code>ci-system learn</code> após ingerir métricas</div>';
+}
+
+function renderRuns() {
+  const rows = STATE.runs.map(r => `<tr>
+      <td class="mono">${fmt(r.created_at)}</td>
+      <td><strong>${esc(r.outcome)}</strong></td>
+      <td>${esc(r.rejection_reason || (r.stages || []).map(s => s.agent + ':' + s.status).join(' → '))}</td>
+    </tr>`).join('') || '<tr><td colspan="3" class="empty">nenhum ciclo rodado</td></tr>';
+  document.getElementById('runs').innerHTML =
+    `<thead><tr><th>quando</th><th>resultado</th><th>trilha</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+async function openDetail(id) {
+  const r = await fetch('/api/video/' + encodeURIComponent(id));
+  if (!r.ok) return;
+  DETAIL = await r.json();
+  document.getElementById('scrim').classList.add('on');
+  document.getElementById('drawer').classList.add('on');
+  renderDetail();
+}
+
+function closeDrawer() {
+  DETAIL = null;
+  document.getElementById('scrim').classList.remove('on');
+  document.getElementById('drawer').classList.remove('on');
+}
+
+function renderDetail() {
+  const v = DETAIL.video;
+  document.getElementById('d-title').textContent = v.title;
+  document.getElementById('d-tags').innerHTML = `
+    <span class="tag">${esc(v.status)}</span>
+    <span class="tag">${esc(v.channel)}</span>
+    <span class="tag ${esc(v.bucket)}">${esc(v.bucket)}</span>
+    <span class="tag">${esc(v.format || '—')}</span>
+    <span class="tag">hook: ${esc(v.hook_type || '—')}</span>
+    <span class="tag">${esc(v.duration_s)}s</span>
+    <span class="tag">${v.published_at ? 'publicado ' + fmt(v.published_at)
+      : v.scheduled_for ? 'vai ao ar ' + fmtSlot(v.scheduled_for) : 'sem horário'}</span>`;
+
+  const allowed = {
+    APROVADO:  ['agendar', 'rejeitar'],
+    AGENDADO:  ['publicar', 'reabrir', 'rejeitar'],
+    PUBLICADO: ['reabrir'],
+    REJEITADO: ['reabrir'],
+  }[v.status] || [];
+  const label = { agendar: 'Agendar no próximo slot', publicar: 'Marcar como publicado',
+                  rejeitar: 'Rejeitar', reabrir: 'Reabrir' };
+  document.getElementById('d-actions').innerHTML = allowed.map(a =>
+    `<button class="${a === 'publicar' ? 'primary' : ''}" onclick="act('${a}')">${label[a]}</button>`
+  ).join('');
+
+  const tabs = [['roteiro', 'Roteiro'], ['shots', 'Shot list'], ['post', 'Caption'], ['metricas', 'Métricas']];
+  document.getElementById('d-tabs').innerHTML = tabs.map(([k, t]) =>
+    `<button class="${TAB === k ? 'on' : ''}" onclick="TAB='${k}';renderDetail()">${t}</button>`).join('');
+
+  document.getElementById('d-panel').innerHTML =
+    TAB === 'roteiro' ? paneScript() :
+    TAB === 'shots'   ? paneShots()  :
+    TAB === 'post'    ? panePost()   : paneMetrics();
+}
+
+function paneScript() {
+  const s = DETAIL.script;
+  if (!s) return '<div class="empty">sem roteiro gravado</div>';
+  const secs = (s.sections || []).map(x => `
+    <div class="sec"><div class="muted mono">${x.start_s}s–${x.end_s}s · ${esc(x.label || '')}</div>
+      <div>${esc(x.text || '')}</div>
+      ${x.on_screen ? `<div class="muted" style="font-size:12px">na tela: ${esc(x.on_screen)}</div>` : ''}
+    </div>`).join('');
+  const hooks = (s.hooks || []).map(h => `
+    <div class="sec"><strong>${esc(h.text)}</strong>
+      <div class="muted" style="font-size:12px">${esc(h.hook_type)} · potencial ${h.retention_potential}
+      ${h.rationale ? '— ' + esc(h.rationale) : ''}</div></div>`).join('');
+  return `<h2>Hook escolhido</h2><pre class="copy">${esc(s.selected_hook || '')}</pre>
+    <h2>Roteiro (${s.duration_s}s · ${esc(s.tone || '')})</h2>${secs}
+    <h2>Hooks alternativos</h2>${hooks || '<div class="empty">—</div>'}
+    <h2>Fontes</h2><div class="muted">${(s.sources || []).map(esc).join('<br>') || '—'}</div>`;
+}
+
+function paneShots() {
+  const sl = DETAIL.shot_list;
+  if (!sl) return '<div class="empty">sem shot list</div>';
+  const rows = (sl.shots || []).map(sh => `
+    <div class="shot">
+      <div class="time">${sh.t_start}s–${sh.t_end}s</div>
+      <div>
+        <div><strong>${esc(sh.visual_type || '')}</strong>
+          <span class="tag">${esc(sh.function || '')}</span></div>
+        ${sh.on_screen ? `<div>na tela: ${esc(sh.on_screen)}</div>` : ''}
+        <div class="muted" style="font-size:12px">transição: ${esc(sh.transition || '—')}</div>
+        ${sh.broll_query ? `<div class="muted mono">buscar b-roll: ${esc(sh.broll_query)}</div>` : ''}
+      </div>
+    </div>`).join('');
+  return `<div class="note">Isto é a planta do vídeo. O sistema não renderiza:
+    baixar b-roll, gravar narração e montar é trabalho manual.</div>
+    ${rows}
+    <h2 style="margin-top:18px">Export</h2>
+    <pre class="copy">${esc(JSON.stringify(sl.export || {}, null, 2))}</pre>
+    <h2>Música</h2><pre class="copy">${esc(JSON.stringify(sl.music || {}, null, 2))}</pre>`;
+}
+
+function panePost() {
+  const p = DETAIL.publishing || {};
+  if (!p.caption) return '<div class="empty">sem caption gravada (vídeos criados antes desta versão não têm)</div>';
+  return `<div class="note">Cole isto no TikTok na hora de postar — não há integração com a API.</div>
+    <h2>Caption</h2><pre class="copy" id="cap">${esc(p.caption)}</pre>
+    <button onclick="navigator.clipboard.writeText(document.getElementById('cap').textContent)">Copiar caption</button>
+    <h2 style="margin-top:16px">Hashtags</h2>
+    <pre class="copy">${esc((p.hashtags || []).join(' '))}</pre>
+    <h2>Comentário fixado</h2><pre class="copy">${esc(p.pinned_comment || '—')}</pre>`;
+}
+
+function paneMetrics() {
+  const m = DETAIL.metrics || {};
+  const keys = Object.keys(m);
+  if (!keys.length) return `<div class="empty">sem métricas — exporte do TikTok Analytics e rode
+    <code>ci-system ingest --file data/metrics.json</code> com este video_id:
+    <br><span class="mono">${esc(DETAIL.video.id)}</span></div>`;
+  return `<div class="wrap"><table>
+    <thead><tr><th>janela</th><th class="num">views</th><th class="num">retenção</th>
+    <th class="num">receita</th><th class="num">custo</th><th class="num">ROI</th></tr></thead>
+    <tbody>${keys.map(k => {
+      const x = m[k];
+      return `<tr><td>${esc(k)}</td><td class="num">${x.views}</td>
+        <td class="num">${x.avg_retention_pct}%</td><td class="num">$${x.revenue_usd}</td>
+        <td class="num">$${x.cost_usd}</td>
+        <td class="num">${x.roi == null ? '—' : (x.roi * 100).toFixed(0) + '%'}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+async function act(action) {
+  const r = await fetch('/api/video/' + encodeURIComponent(DETAIL.video.id), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+  const body = await r.json();
+  if (!r.ok) { alert(body.error || 'falhou'); return; }
+  DETAIL = body;
+  await load();
+  renderDetail();
+}
+
+document.getElementById('auto').addEventListener('change', e => {
+  clearInterval(TIMER);
+  if (e.target.checked) TIMER = setInterval(load, 30000);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+load();
+</script>
+</body>
+</html>

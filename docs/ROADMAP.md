@@ -22,7 +22,7 @@ com `DADOS_INSUFICIENTES` até haver amostra.
 | # | Item | Estado |
 |---|---|---|
 | 1 | Script Architect + Video Editor | **pronto** (spec; falta render) |
-| 2 | Publishing & Scheduling | **parcial** — agenda; falta postar |
+| 2 | Publishing & Scheduling | **parcial** — agenda e registra o post manual pelo painel; falta postar via API |
 | 3 | Low-Quality Detector + Quality Control | **pronto** |
 | 4 | Algorithm Research | **pronto** — melhora com histórico |
 | 5 | Analytics & Learning | **pronto** — depende de métricas reais |
@@ -41,9 +41,13 @@ Ponto de entrada: consumir `ShotList` da knowledge base.
 
 ### 2. Publicação via API
 
-`Video.status` já tem `AGENDADO` → `PUBLICADO` e `scheduled_for`. Falta o
-worker que posta na janela e grava `published_at`. Fila de retry e alerta por
-falha de ferramenta são requisito do Agente 7.
+`Video.status` já tem `AGENDADO` → `PUBLICADO` e `scheduled_for`, e o painel
+(`ci-system dashboard`) já faz essa transição a mão, gravando `published_at`.
+Falta o worker que posta na janela sozinho. Fila de retry e alerta por falha
+de ferramenta são requisito do Agente 7.
+
+Quando existir, ele substitui o botão *Marcar como publicado* — a transição de
+estado e o campo já estão no lugar certo.
 
 ### 3. Coleta automática de métricas
 

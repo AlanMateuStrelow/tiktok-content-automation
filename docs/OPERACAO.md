@@ -1,5 +1,43 @@
 # Operação
 
+## O painel (gestão à vista)
+
+```bash
+ci-system dashboard
+```
+
+Deixe aberto enquanto trabalha. Ele lê o mesmo banco que a CLI escreve, então
+um `cycle` rodando em outro terminal aparece no próximo **Atualizar** (ou
+marque `auto 30s`).
+
+O que fazer nele, na ordem do dia:
+
+1. **Topo** — se a faixa estiver vermelha, o buffer de algum canal furou o
+   mínimo. Isso vem antes de qualquer outra tarefa: rode `cycle` nesse canal.
+2. **Fila de produção** — a coluna `AGENDADO` é a sua lista de trabalho. Cada
+   card é um vídeo que precisa ser montado e postado à mão.
+3. **Clique no card** — abre roteiro, shot list plano a plano (com as queries
+   de b-roll), a caption pronta para copiar e as métricas do vídeo.
+4. **Depois de postar no TikTok** — volte no card e clique em *Marcar como
+   publicado*. Sem esse clique o buffer conta um vídeo que já saiu, e o
+   `health` passa a mentir.
+
+As ações disponíveis mudam com o estado:
+
+| Estado | Ações |
+|---|---|
+| `APROVADO` | agendar no próximo slot livre, rejeitar |
+| `AGENDADO` | marcar como publicado, reabrir, rejeitar |
+| `PUBLICADO` | reabrir (desfaz, se clicou errado) |
+| `REJEITADO` | reabrir |
+
+Os horários no painel aparecem no fuso do público (`America/New_York`), não no
+seu — é o horário em que o vídeo vai ao ar para quem assiste.
+
+O painel **não** renderiza vídeo nem posta: essas duas peças não existem no
+sistema (`docs/ROADMAP.md`). Ele mostra o que produzir e registra o que você
+já publicou.
+
 ## Rotina diária
 
 ```bash

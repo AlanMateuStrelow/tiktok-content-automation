@@ -141,6 +141,9 @@ class Video:
     production_cost_usd: float = 0.0
     experiment_id: str | None = None
     variant: str | None = None  # control | test
+    # Caption/hashtags/comentario fixado do Agente 7. Fica no video porque e o
+    # que a pessoa precisa ter em maos na hora de postar.
+    publishing: dict[str, Any] = field(default_factory=dict)
     id: str = field(default_factory=lambda: new_id("vid"))
     created_at: str = field(default_factory=utcnow)
 

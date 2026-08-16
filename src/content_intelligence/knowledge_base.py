@@ -488,6 +488,56 @@ class KnowledgeBase:
         return [json.loads(r["payload"]) for r in self.conn.execute(sql, params)]
 
 
+    def videos(
+        self, channel: str | None = None, status: str | None = None, limit: int = 200
+    ) -> list[dict]:
+        """Todos os videos, do mais recente para o mais antigo (painel)."""
+        sql = "SELECT payload FROM videos WHERE 1=1"
+        params: list[Any] = []
+        if channel:
+            sql += " AND channel = ?"
+            params.append(channel)
+        if status:
+            sql += " AND status = ?"
+            params.append(status)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        return [json.loads(r["payload"]) for r in self.conn.execute(sql, params)]
+
+    def script(self, script_id: str) -> dict | None:
+        row = self.conn.execute(
+            "SELECT payload FROM scripts WHERE id = ?", (script_id,)
+        ).fetchone()
+        return json.loads(row["payload"]) if row else None
+
+    def shot_list_for(self, script_id: str) -> dict | None:
+        row = self.conn.execute(
+            "SELECT payload FROM shot_lists WHERE script_id = ? ORDER BY created_at DESC LIMIT 1",
+            (script_id,),
+        ).fetchone()
+        return json.loads(row["payload"]) if row else None
+
+    def opportunity(self, opportunity_id: str) -> dict | None:
+        row = self.conn.execute(
+            "SELECT payload FROM opportunities WHERE id = ?", (opportunity_id,)
+        ).fetchone()
+        return json.loads(row["payload"]) if row else None
+
+    def recent_runs(self, limit: int = 20) -> list[dict]:
+        """Historico do orquestrador -- inclui o que foi REJEITADO e por que."""
+        rows = self.conn.execute(
+            "SELECT opportunity_id, outcome, payload, created_at FROM pipeline_runs"
+            " ORDER BY created_at DESC LIMIT ?",
+            (limit,),
+        )
+        out = []
+        for row in rows:
+            item = json.loads(row["payload"])
+            item["created_at"] = row["created_at"]
+            out.append(item)
+        return out
+
+
 def bulk_save_metrics(kb: KnowledgeBase, items: Iterable[Metrics]) -> int:
     count = 0
     for item in items:

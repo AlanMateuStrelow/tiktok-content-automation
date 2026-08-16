@@ -49,6 +49,9 @@ Requer Python 3.11+. Sem chave da API, tudo roda em `--dry-run`.
 ## Primeiros comandos
 
 ```bash
+# 0. Abrir o painel de gestao a vista (roda local, nao precisa de chave)
+ci-system dashboard
+
 # 1. Ver o encanamento funcionando, sem gastar crédito e sem chamar a API
 ci-system --dry-run mission
 
@@ -72,6 +75,23 @@ ci-system report weekly --out out/weekly.md
 
 Flags globais: `--dry-run`, `--json`, `--out ARQUIVO`, `--db CAMINHO`,
 `--model`, `--effort {low,medium,high,xhigh,max}`, `--config settings.json`.
+
+## O painel
+
+```bash
+ci-system dashboard              # http://127.0.0.1:8787, abre o navegador
+ci-system dashboard --port 9000 --no-browser
+```
+
+Serve um quadro local com o mesmo banco que a CLI escreve: buffer e portfólio
+por canal, a fila de produção em colunas por status, e — ao clicar num vídeo —
+o roteiro, a shot list plano a plano, a caption pronta para copiar e as
+métricas. Dali você **agenda**, **marca como publicado** ou **rejeita** um
+vídeo; é assim que o sistema fica sabendo o que foi ao ar, já que ninguém
+posta por você.
+
+Sem dependência nova: `http.server` da stdlib e HTML sem build. Não faz
+requisição para fora — só lê o SQLite local.
 
 ## Os gates (onde o sistema para)
 
@@ -112,6 +132,8 @@ src/content_intelligence/
 ├── orchestrator.py    Agente 0: encadeia tudo e aplica os gates
 ├── reports.py         DAILY e WEEKLY (Camada 3)
 ├── cli.py             interface de linha de comando
+├── dashboard.py       painel web de gestao a vista (stdlib, sem deps)
+├── web/index.html     a interface do painel
 ├── demo_data.py       saídas válidas usadas pelo --dry-run
 ├── agents/            os 8 agentes: prompt + schema + validação
 └── prompts/           prompts de sistema (em inglês — o conteúdo é para EUA/UK)
@@ -123,9 +145,9 @@ src/content_intelligence/
 pytest
 ```
 
-100 testes cobrindo pontuação, sistema de morte, knowledge base, agendamento,
-validadores de agente, pipeline completo com gates e relatórios. Nenhum chama
-a API.
+116 testes cobrindo pontuação, sistema de morte, knowledge base, agendamento,
+validadores de agente, pipeline completo com gates, relatórios e o painel
+(estado, ações e as rotas HTTP). Nenhum chama a API.
 
 ## Custos e modelo
 
@@ -142,3 +164,7 @@ qualquer mudança de estratégia entre nichos. A integração com a API de
 publicação do TikTok e a renderização em FFmpeg **não** estão implementadas —
 o sistema entrega a shot list e o agendamento; a execução do render e do post
 é o próximo passo. Ver `docs/ROADMAP.md`.
+
+Na prática: o painel mostra o que produzir e você monta e posta o vídeo. O
+botão **marcar como publicado** existe justamente porque esse passo é manual —
+sem ele o sistema não sabe o que já foi ao ar e o buffer mente.
