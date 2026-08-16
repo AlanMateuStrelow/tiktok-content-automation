@@ -6,6 +6,9 @@
 ci-system dashboard
 ```
 
+Se o comando `ci-system` nao for reconhecido, use `python -m
+content_intelligence dashboard` — mesma coisa, sem depender do PATH.
+
 Deixe aberto enquanto trabalha. Ele lê o mesmo banco que a CLI escreve, então
 um `cycle` rodando em outro terminal aparece no próximo **Atualizar** (ou
 marque `auto 30s`).

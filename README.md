@@ -46,11 +46,21 @@ cp .env.example .env      # e preencha ANTHROPIC_API_KEY
 
 Requer Python 3.11+. Sem chave da API, tudo roda em `--dry-run`.
 
+Se `ci-system` der "comando nao encontrado" — comum no Windows, onde o
+diretorio de scripts do Python nao entra no PATH — troque por `python -m
+content_intelligence` em qualquer comando deste README. E o mesmo programa,
+chamado pelo Python que instalou o pacote:
+
+```bash
+python -m content_intelligence dashboard
+python -m content_intelligence --dry-run mission
+```
+
 ## Primeiros comandos
 
 ```bash
 # 0. Abrir o painel de gestao a vista (roda local, nao precisa de chave)
-ci-system dashboard
+ci-system dashboard          # ou: python -m content_intelligence dashboard
 
 # 1. Ver o encanamento funcionando, sem gastar crédito e sem chamar a API
 ci-system --dry-run mission
@@ -132,6 +142,7 @@ src/content_intelligence/
 ├── orchestrator.py    Agente 0: encadeia tudo e aplica os gates
 ├── reports.py         DAILY e WEEKLY (Camada 3)
 ├── cli.py             interface de linha de comando
+├── __main__.py        permite `python -m content_intelligence`
 ├── dashboard.py       painel web de gestao a vista (stdlib, sem deps)
 ├── web/index.html     a interface do painel
 ├── demo_data.py       saídas válidas usadas pelo --dry-run
