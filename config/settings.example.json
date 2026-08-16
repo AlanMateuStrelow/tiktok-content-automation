@@ -1,0 +1,31 @@
+{
+  "model": "claude-opus-5",
+  "effort": "high",
+  "max_tokens": 16000,
+  "db_path": "data/knowledge_base.db",
+  "output_dir": "out",
+  "gates": {
+    "min_quality_score": 70,
+    "max_retention_risk": 60,
+    "min_distribution_potential": 5,
+    "max_shadowban_risk": "medio",
+    "min_originality": 6,
+    "max_rewrite_attempts": 2
+  },
+  "publishing": {
+    "min_buffer_per_channel": 3,
+    "target_buffer_per_channel": 5,
+    "audience_timezone": "America/New_York",
+    "similarity_lookback": 2,
+    "windows": {
+      "finance": ["07:30", "12:15"],
+      "tech_ai": ["18:45", "21:30"]
+    }
+  },
+  "death": {
+    "min_samples": 5,
+    "kill_ratio": 0.7,
+    "scale_ratio": 1.3,
+    "lookback_days": 30
+  }
+}

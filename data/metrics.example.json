@@ -1,0 +1,30 @@
+[
+  {
+    "video_id": "vid_substitua_pelo_id_real",
+    "window": "72h",
+    "views": 48200,
+    "watch_time_s": 61400.0,
+    "avg_retention_pct": 58.4,
+    "completion_pct": 31.2,
+    "shares": 610,
+    "comments": 143,
+    "saves": 902,
+    "followers_gained": 218,
+    "revenue_usd": 21.4,
+    "cost_usd": 3.0
+  },
+  {
+    "video_id": "vid_substitua_pelo_id_real",
+    "window": "7d",
+    "views": 96500,
+    "watch_time_s": 118900.0,
+    "avg_retention_pct": 55.1,
+    "completion_pct": 29.8,
+    "shares": 1180,
+    "comments": 260,
+    "saves": 1640,
+    "followers_gained": 402,
+    "revenue_usd": 44.9,
+    "cost_usd": 3.0
+  }
+]

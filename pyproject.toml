@@ -1,0 +1,30 @@
+[project]
+name = "content-intelligence"
+version = "0.1.0"
+description = "Content Intelligence & Automated Media System - Financas + Tech/IA"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.69.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[project.scripts]
+ci-system = "content_intelligence.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+content_intelligence = ["prompts/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
