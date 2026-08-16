@@ -382,7 +382,11 @@ function setView(v) {
 }
 
 async function loadSequence() {
-  SEQ = await (await fetch('/api/sequence')).json();
+  // Servidor antigo (subiu antes de um git pull) responde 404 aqui. Sem esta
+  // checagem o painel diria "nenhum video ainda" -- que e falso e manda a
+  // pessoa procurar problema no lugar errado.
+  const r = await fetch('/api/sequence');
+  SEQ = r.ok ? await r.json() : null;
   renderSequence();
 }
 
@@ -405,6 +409,11 @@ function horaDe(iso) {
 
 function renderSequence() {
   const alvo = document.getElementById('sequence');
+  if (!Array.isArray(SEQ)) {
+    alvo.innerHTML = '<div class="empty">Este servidor é anterior à aba Sequência. '
+      + 'Feche o painel (Ctrl+C na janela do terminal) e abra de novo.</div>';
+    return;
+  }
   if (!SEQ.length) {
     alvo.innerHTML = '<div class="empty">nenhum vídeo ainda — rode <code>ci-system cycle --channel finance</code></div>';
     return;
