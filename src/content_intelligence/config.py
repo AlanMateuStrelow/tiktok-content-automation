@@ -133,6 +133,35 @@ class DeathSystem:
     lookback_days: int = 30
 
 
+def load_env_file(path: str | Path = ".env") -> list[str]:
+    """Le um `.env` simples (CHAVE=valor) para o ambiente do processo.
+
+    O `.env.example` promete isso e nada no codigo lia o arquivo: quem seguia
+    o README preenchia a chave e continuava sem ela. Sem dependencia nova --
+    o formato que o projeto usa cabe em um parser de dez linhas.
+
+    Variavel ja definida no ambiente **vence** o arquivo: exportar a chave na
+    sessao e a forma de sobrescrever o `.env` sem edita-lo.
+    """
+    p = Path(path)
+    if not p.exists():
+        return []
+
+    carregadas: list[str] = []
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.removeprefix("export ").partition("=")
+        key = key.strip()
+        value = value.strip().strip("\"'")
+        if not key or not value or key in os.environ:
+            continue
+        os.environ[key] = value
+        carregadas.append(key)
+    return carregadas
+
+
 @dataclass
 class Settings:
     model: str = DEFAULT_MODEL
@@ -154,7 +183,12 @@ class Settings:
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> "Settings":
-        """Carrega settings de JSON + variaveis de ambiente (env tem prioridade)."""
+        """Carrega settings de JSON + variaveis de ambiente (env tem prioridade).
+
+        Le o `.env` da pasta atual antes de olhar o ambiente, para que a chave
+        da API e os overrides funcionem como o README descreve.
+        """
+        load_env_file()
         data: dict = {}
         if path:
             p = Path(path)

@@ -44,6 +44,9 @@ pip install -e ".[dev]"
 cp .env.example .env      # e preencha ANTHROPIC_API_KEY
 ```
 
+O `.env` e lido da pasta onde voce roda o comando. Variavel ja exportada no
+ambiente tem prioridade sobre o arquivo.
+
 Requer Python 3.11+. Sem chave da API, tudo roda em `--dry-run`.
 
 Se `ci-system` der "comando nao encontrado" — comum no Windows, onde o
