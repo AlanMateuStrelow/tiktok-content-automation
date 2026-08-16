@@ -159,9 +159,10 @@ src/content_intelligence/
 pytest
 ```
 
-116 testes cobrindo pontuação, sistema de morte, knowledge base, agendamento,
-validadores de agente, pipeline completo com gates, relatórios e o painel
-(estado, ações e as rotas HTTP). Nenhum chama a API.
+125 testes cobrindo pontuação, sistema de morte, knowledge base, agendamento,
+validadores de agente, pipeline completo com gates, relatórios, o painel
+(estado, ações e as rotas HTTP) e o carregamento de configuração. Nenhum
+chama a API.
 
 ## Custos e modelo
 
